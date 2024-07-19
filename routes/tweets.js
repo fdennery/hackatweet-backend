@@ -23,7 +23,9 @@ module.exports = { checkBody };
 /* GET  all tweets listing. */
 router.get('/', (req, res,) => {
 
-  Tweet.find().then(dbData => {
+  Tweet.find().populate('creator')
+  .then(dbData => {
+    
 
     res.json({tweets: dbData });
   })
@@ -35,17 +37,16 @@ router.get('/', (req, res,) => {
 // Create Tweet
 
 router.post('/' ,(req, res) => {
-  console.log('test')
  if (!checkBody(req.body, ['creator', 'tweet' ])) {
     res.json({ result: false, error: 'Missing or empty fields' });
     return;
   }
   let hashtags = req.body.tweet.match(/#[a-z]+/gi)
-  let label =  req.body.tweet.replace(/#\S+/gi, '')
+  //let label =  req.body.tweet.replace(/#\S+/gi, '')
 
  const newTweet = new Tweet({
     creator: req.body.creator,
-    label: label,
+    label: req.body.tweet,
     hashtags: hashtags,
     liked_by: []
   })
@@ -56,6 +57,7 @@ router.post('/' ,(req, res) => {
 })
 
 router.delete('/:tweetId', (req,res) => {
+  console.log(req.params.tweetId)
   Tweet.deleteOne({
     _id : req.params.tweetId
   }).then(deletedDoc => {

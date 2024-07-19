@@ -10,44 +10,19 @@ router.get('/', (req, res) => {
   res.json({ result: true });
 });
 
-// Route test 
-router.post('/createTest', (req, res) => {
-  User.findOne({ username: req.body.username }).then(data => {
-    if (data === null) {
-      const newUser = new User({
-        firstname: req.body.firstname,
-        username: req.body.username,
-        password: req.body.password,
-        token: uid2(32),
-      });
-      newUser.save().then(newDoc => {
-        res.json({ result: true, token: newDoc.token });
-      });
+
+router.get('/:username' , (req, res)=> {
+  User.findOne({username : req.params.username})
+  .then (data => {
+    if (data) {
+      res.json({data})
     } else {
-      res.json({ result: false, error: 'User already exists' });
+      res.json({result: false, error: 'user not found'})
     }
-  });
+  })
 });
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// CREER nouvelles routes ICI 
 function checkBody(body, keys) {
   let isValid = true;
   for (const field of keys) {
@@ -99,15 +74,14 @@ router.post("/signin", (req, res) => {
     return;
   }
 
-  User.findOne({ username: req.body.username, password: req.body.password })
+  User.findOne({ username: req.body.username })
     .then(data => {
-      if (data) {
-        res.json({ result: true });
+      if (data && bcrypt.compareSync(req.body.password, data.password)) {
+        res.json({ result: true, token: data.token });
       } else {
-        // User is already registered 
-        res.json({ result: false, error: "User not found" });
+        res.json({ result: false, error: 'User not found or wrong password' });
       }
-    });
+});
 });
 
 module.exports = router;
