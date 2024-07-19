@@ -25,8 +25,6 @@ router.get('/', (req, res,) => {
 
   Tweet.find().populate('creator')
   .then(dbData => {
-    
-
     res.json({tweets: dbData });
   })
 
@@ -101,6 +99,17 @@ router.put('/updateLikes', (req, res)=> {
       }})
     } 
 })
+})
+
+
+router.get('/trends', (req , res)=> {
+  Tweet.aggregate([
+    { $unwind: '$hashtags' },
+    { $group: { _id: '$hashtags', count: { $sum: 1 } } } 
+  ]).then(dbData => {
+    res.json({result: true, trends: dbData})
+  })
+
 })
 
 

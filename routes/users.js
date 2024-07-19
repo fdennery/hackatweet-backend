@@ -15,7 +15,7 @@ router.get('/:username' , (req, res)=> {
   User.findOne({username : req.params.username})
   .then (data => {
     if (data) {
-      res.json({data})
+      res.json({result: true, user: data})
     } else {
       res.json({result: false, error: 'user not found'})
     }
@@ -58,8 +58,8 @@ router.post("/signup", (req, res) => {
             token: uid2(32),
           });
 
-          newUser.save().then(() => {
-            res.json({ result: true });
+          newUser.save().then(newDoc => {
+            res.json({ result: true, token: newDoc.token });
           });
         });
       } else {
