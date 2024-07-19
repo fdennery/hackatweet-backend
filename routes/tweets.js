@@ -23,7 +23,7 @@ module.exports = { checkBody };
 /* GET  all tweets listing. */
 router.get('/', (req, res,) => {
 
-  Tweet.find().populate('creator')
+  Tweet.find().populate('creator').sort({ creation_date:'desc'})
   .then(dbData => {
     res.json({tweets: dbData });
   })
@@ -112,5 +112,10 @@ router.get('/trends', (req , res)=> {
 
 })
 
-
+router.get('/byHashtag/:hashtag', (req, res) => {
+  Tweet.find({hashtags: {$in: [`#${req.params.hashtag}`]}}).sort({ creation_date:'desc'})
+.then(dbData => {
+  res.json({result :true, tweets: dbData})
+})
+})
 module.exports = router;
