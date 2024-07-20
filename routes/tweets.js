@@ -3,6 +3,7 @@ var router = express.Router();
 
 require ('../models/connection')
 const Tweet = require('../models/tweets')
+const User = require('../models/users')
 
 
 function checkBody(body, keys) {
@@ -23,7 +24,10 @@ module.exports = { checkBody };
 /* GET  all tweets listing. */
 router.get('/', (req, res,) => {
 
-  Tweet.find().populate('creator').sort({ creation_date:'desc'})
+  Tweet.find()
+  .populate('creator',['username', 'firstname'])
+  .populate('liked_by', ['username'])
+  .sort({ creation_date:'desc'})
   .then(dbData => {
     res.json({tweets: dbData });
   })
@@ -39,11 +43,20 @@ router.post('/' ,(req, res) => {
     res.json({ result: false, error: 'Missing or empty fields' });
     return;
   }
+
+  User.findOne({username: req.body.creator})
+  .then (userData => {
+    if (userData === null) {
+      res.json({result:'false', error: 'user not found'});
+      return;
+    }
+
+
   let hashtags = req.body.tweet.match(/#[a-z]+/gi)
   //let label =  req.body.tweet.replace(/#\S+/gi, '')
 
  const newTweet = new Tweet({
-    creator: req.body.creator,
+    creator: userData._id,
     label: req.body.tweet,
     hashtags: hashtags,
     liked_by: []
@@ -52,7 +65,8 @@ router.post('/' ,(req, res) => {
   newTweet.save().then(newDoc => {
     res.json({result : true, tweet: newDoc})
   })
-})
+});
+});
 
 router.delete('/:tweetId', (req,res) => {
   console.log(req.params.tweetId)
@@ -68,17 +82,24 @@ router.delete('/:tweetId', (req,res) => {
 })
 
 router.put('/updateLikes', (req, res)=> {
-  if (!checkBody(req.body, ['tweetId', 'likedBy' ])) {
+  if (!checkBody(req.body, ['tweetId', 'username' ])) {
     res.json({ result: false, error: 'Tweet not found' });
     return;
   }
+
+  User.findOne({username: req.body.username})
+  .then (userData => {
+    if (userData === null) {
+      res.json({result:true, error: 'user not found'})
+    }
+ 
   Tweet.findOne({_id: req.body.tweetId}).then( dbData => {
     if (!dbData) {
       res.json({result: false, error: 'Tweet not found'})
-    } else if (!dbData.liked_by.includes(req.body.likedBy)){
+    } else if (!dbData.liked_by.includes(userData._id)){
       Tweet.updateOne(
         {_id: req.body.tweetId},
-        { $push: {liked_by: req.body.likedBy}}
+        { $push: {liked_by: userData._id}}
       ).then(updatedDoc => {
         if (updatedDoc.modifiedCount > 0) {
         res.json({result: true, message:'tweet liked', updatedDoc})
@@ -86,10 +107,10 @@ router.put('/updateLikes', (req, res)=> {
         res.json({result: false, error: 'An error occured'})
       }
     })
-    } else if (dbData.liked_by.includes(req.body.likedBy)){
+    } else if (dbData.liked_by.includes(userData._id)){
       Tweet.updateOne(
         {_id: req.body.tweetId},
-        { $pull: {liked_by: req.body.likedBy}}
+        { $pull: {liked_by: userData._id}}
       ).then(updatedDoc => {
         if (updatedDoc.modifiedCount > 0) {
         res.json({result: true, message: 'tweet unliked', updatedDoc})
@@ -97,9 +118,10 @@ router.put('/updateLikes', (req, res)=> {
         res.json({result: false, error: 'An error occured'})
   
       }})
-    } 
-})
-})
+    }; 
+});
+});
+});
 
 
 router.get('/trends', (req , res)=> {
